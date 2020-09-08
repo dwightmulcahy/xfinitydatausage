@@ -51,7 +51,9 @@ import socket
 from operator import itemgetter
 from copy import deepcopy
 
-from .version import VERSION, PROJECT_URL
+# from .version import VERSION, PROJECT_URL
+VERSION = '3.0.3'
+PROJECT_URL = 'https://github.com/jantman/xfinity-usage'
 
 try:
     from selenium import webdriver
@@ -66,7 +68,7 @@ except ImportError:
     raise SystemExit(1)
 
 FORMAT = "[%(asctime)s %(levelname)s] %(message)s"
-logging.basicConfig(level=logging.WARNING, format=FORMAT)
+logging.basicConfig(level=logging.INFO, format=FORMAT)
 logger = logging.getLogger()
 
 # suppress selenium DEBUG logging
@@ -404,8 +406,7 @@ class XfinityUsage(object):
             profile.set_preference("dom.webdriver.enabled", False)
             profile.set_preference('useAutomationExtension', False)
             profile.update_preferences()
-            browser = webdriver.Firefox(firefox_profile=profile,
-                                        firefox_options=options)
+            browser = webdriver.Firefox( executable_path="/usr/local/bin/geckodriver", firefox_profile=profile, options=options)
         elif self.browser_name == 'chrome':
             logger.debug("getting Chrome browser (local)")
             browser = webdriver.Chrome()
