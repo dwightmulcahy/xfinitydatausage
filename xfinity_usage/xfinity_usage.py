@@ -46,7 +46,7 @@ import json
 import codecs
 import time
 import re
-from datetime import datetime
+from datetime import datetime, date
 import socket
 from operator import itemgetter
 from copy import deepcopy
@@ -320,7 +320,7 @@ class XfinityUsage(object):
             self.error_screenshot()
             raise RuntimeError('Unable to find current Total Monthly Usage '
                                'table cell.')
-        logger.debug('Montly Usage TD: %s', used_value)
+        logger.debug('Monthly Usage TD: %s', used_value)
         m = re.search(
             r'(\d+)([A-Za-z]+) remaining of (\d+)([A-Za-z]+) monthly plan',
             meter.text
@@ -686,9 +686,14 @@ def main():
     if args.json:
         print(json.dumps(res))
         raise SystemExit(0)
-    print("Used %d of %d %s this month." % (
-        res['used'], res['total'], res['units']
+    print("Used %d%s of %d%s this month." % (
+        res['used'], res['units'], res['total'], res['units']
     ))
+    percentageUsed = (res['used']/res['total'])*100
+    print("%.2f%s used so far" % (percentageUsed, "%"))
+    predictedUsage = (res['used']/date.today().day)*30
+    print("%.2f%s predicted usage by end of month." % (predictedUsage, res['units']))
+
     if args.graphite:
         # send to graphite
         sender = GraphiteSender(
