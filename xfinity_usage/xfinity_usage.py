@@ -349,13 +349,15 @@ class XfinityUsage(object):
         fname = os.path.join(
             os.getcwd(), '{n}.png'.format(n=self._screenshot_num)
         )
-        self.browser.get_screenshot_as_file(fname)
-        logger.debug(
-            "Screenshot: {f} of: {s}".format(
-                f=fname,
-                s=self.browser.current_url
+        if self.browser.get_screenshot_as_file(fname):
+            logger.debug(
+                "Screenshot: {f} of: {s}".format(
+                    f=fname,
+                    s=self.browser.current_url
+                )
             )
-        )
+        else:
+            logger.error("Unable to save screenshot file")
         self._screenshot_num += 1
 
     def error_screenshot(self, fname=None):
