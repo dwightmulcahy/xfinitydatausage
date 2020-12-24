@@ -47,7 +47,7 @@ import codecs
 import time
 import re
 from datetime import datetime, date
-import socket
+# import socket
 from operator import itemgetter
 from copy import deepcopy
 
@@ -55,7 +55,7 @@ from copy import deepcopy
 from apscheduler.schedulers.blocking import BlockingScheduler
 sched = BlockingScheduler()
 
-from sendgmail import Gmail
+from xfinity_usage.sendgmail import Gmail
 
 
 VERSION = '3.0.3'
@@ -414,7 +414,9 @@ class XfinityUsage(object):
             profile.set_preference("dom.webdriver.enabled", False)
             profile.set_preference('useAutomationExtension', False)
             profile.update_preferences()
-            browser = webdriver.Firefox( executable_path="/usr/local/bin/geckodriver", firefox_profile=profile, options=options)
+            cap = DesiredCapabilities().FIREFOX
+            cap["marionette"] = False
+            browser = webdriver.Firefox(capabilities=cap, executable_path="/usr/local/bin/geckodriver", firefox_profile=profile, options=options)
         elif self.browser_name == 'chrome':
             logger.debug("getting Chrome browser (local)")
             browser = webdriver.Chrome()
