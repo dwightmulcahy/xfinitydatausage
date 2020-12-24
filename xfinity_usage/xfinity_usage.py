@@ -53,9 +53,12 @@ from copy import deepcopy
 
 # from .version import VERSION, PROJECT_URL
 from apscheduler.schedulers.blocking import BlockingScheduler
-sched = BlockingScheduler()
 
 from xfinity_usage.sendgmail import Gmail
+
+sched = BlockingScheduler()
+
+# from sendgmail import Gmail
 
 
 VERSION = '3.0.3'
@@ -686,6 +689,7 @@ def main():
         raise SystemExit("ERROR: please export your Xfinity password as the "
                          "XFINITY_PASSWORD environment variable.")
 
+    logger.info('sending initial report')
     dailyReport()
 
     # start scheduler
@@ -695,6 +699,7 @@ def main():
 # schedule this job to run everyday at 11:59pm
 @sched.scheduled_job('cron', hour=21, minute=7)
 def dailyReport():
+    logger.info('gathering data from xfinity')
     script = XfinityUsage(
         os.environ['XFINITY_USER'],
         os.environ['XFINITY_PASSWORD'],

@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import logging
 from gmail import Message, GMailWorker, GMail  # https://github.com/paulc/gmail-sender
 from markdown import Markdown, markdown
