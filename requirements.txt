@@ -1,4 +1,6 @@
-pip~=20.2.2
 urllib3~=1.25.10
 selenium~=3.141.0
-setuptools~=50.1.0
+setuptools~=51.1.0
+gmail
+markdown
+apscheduler

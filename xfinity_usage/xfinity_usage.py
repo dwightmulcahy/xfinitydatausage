@@ -37,7 +37,7 @@ to me via email, and that you send any contributions or improvements
 either as a pull request on GitHub, or to me via email.
 ##################################################################################
 """
-
+import sched
 import sys
 import os
 import argparse
@@ -52,6 +52,12 @@ from operator import itemgetter
 from copy import deepcopy
 
 # from .version import VERSION, PROJECT_URL
+from apscheduler.schedulers.blocking import BlockingScheduler
+sched = BlockingScheduler()
+
+from sendgmail import Gmail
+
+
 VERSION = '3.0.3'
 PROJECT_URL = 'https://github.com/jantman/xfinity-usage'
 
@@ -531,66 +537,66 @@ class XfinityUsage(object):
         logger.info('Wrote %d cookies to: %s', len(cookies), cookie_file)
 
 
-class GraphiteSender(object):
-
-    def __init__(self, host, port, prefix='xfinity'):
-        self.host = host
-        self.port = port
-        self.prefix = prefix
-        logger.info('Sending graphite data to %s:%s', host, port)
-
-    def _graphite_send(self, send_str):
-        """
-        Send data to graphite
-
-        :param send_str: data string to send
-        :type send_str: str
-        """
-        logger.debug('Opening socket connection to %s:%s', self.host, self.port)
-        sock = socket.create_connection((self.host, self.port), 10)
-        logger.debug('Sending data: "%s"', send_str)
-        if sys.version_info[0] > 2:
-            sock.sendall(send_str.encode('utf-8'))
-        else:
-            sock.sendall(send_str)
-        logger.info('Data sent to Graphite')
-        sock.close()
-
-    def _clean_name(self, metric_name):
-        """
-        Return a graphite-safe metric name.
-
-        :param metric_name: original metric name
-        :type metric_name: str
-        :return: graphite-safe metric name
-        :rtype: str
-        """
-        metric_name = metric_name.lower()
-        newk = re.sub(r'[^A-Za-z0-9_-]', '_', metric_name)
-        if newk != metric_name:
-            logger.debug('Cleaned metric name from "%s" to "%s"',
-                         metric_name, newk)
-        return newk
-
-    def send_data(self, data):
-        """
-        Send data to Graphite.
-
-        :param data: list of data dicts
-        :type data: list
-        """
-        send_str = ''
-        for d in data:
-            ts = time.mktime(d['datetime'].timetuple())
-            for k in sorted(d.keys()):
-                if k == 'datetime':
-                    continue
-                send_str += "%s %s %d\n" % (
-                    '%s.%s' % (self.prefix, self._clean_name(k)),
-                    d[k],
-                    ts
-                )
-        self._graphite_send(send_str)
+# class GraphiteSender(object):
+#
+#     def __init__(self, host, port, prefix='xfinity'):
+#         self.host = host
+#         self.port = port
+#         self.prefix = prefix
+#         logger.info('Sending graphite data to %s:%s', host, port)
+#
+#     def _graphite_send(self, send_str):
+#         """
+#         Send data to graphite
+#
+#         :param send_str: data string to send
+#         :type send_str: str
+#         """
+#         logger.debug('Opening socket connection to %s:%s', self.host, self.port)
+#         sock = socket.create_connection((self.host, self.port), 10)
+#         logger.debug('Sending data: "%s"', send_str)
+#         if sys.version_info[0] > 2:
+#             sock.sendall(send_str.encode('utf-8'))
+#         else:
+#             sock.sendall(send_str)
+#         logger.info('Data sent to Graphite')
+#         sock.close()
+#
+#     def _clean_name(self, metric_name):
+#         """
+#         Return a graphite-safe metric name.
+#
+#         :param metric_name: original metric name
+#         :type metric_name: str
+#         :return: graphite-safe metric name
+#         :rtype: str
+#         """
+#         metric_name = metric_name.lower()
+#         newk = re.sub(r'[^A-Za-z0-9_-]', '_', metric_name)
+#         if newk != metric_name:
+#             logger.debug('Cleaned metric name from "%s" to "%s"',
+#                          metric_name, newk)
+#         return newk
+#
+#     def send_data(self, data):
+#         """
+#         Send data to Graphite.
+#
+#         :param data: list of data dicts
+#         :type data: list
+#         """
+#         send_str = ''
+#         for d in data:
+#             ts = time.mktime(d['datetime'].timetuple())
+#             for k in sorted(d.keys()):
+#                 if k == 'datetime':
+#                     continue
+#                 send_str += "%s %s %d\n" % (
+#                     '%s.%s' % (self.prefix, self._clean_name(k)),
+#                     d[k],
+#                     ts
+#                 )
+#         self._graphite_send(send_str)
 
 
 def parse_args(argv):
@@ -616,17 +622,17 @@ def parse_args(argv):
                         'firefox-headless', ','.join(browsers)))
     p.add_argument('-j', '--json', dest='json', action='store_true',
                    default=False, help='output JSON')
-    p.add_argument('-g', '--graphite', action='store_true', default=False,
-                   help='send metrics to graphite', dest='graphite')
-    p.add_argument('-H', '--graphite-host', action='store', type=str,
-                   dest='graphite_host', default='127.0.0.1',
-                   help='Graphite host to send to (default: 127.0.0.1)')
-    p.add_argument('-P', '--graphite-port', action='store', type=int,
-                   dest='graphite_port', default='2003',
-                   help='Graphite port to send to (default: 2003)')
-    p.add_argument('-p', '--graphite-prefix', action='store', type=str,
-                   dest='graphite_prefix', default='xfinity',
-                   help='graphite metric prefix (default: xfinity)')
+    # p.add_argument('-g', '--graphite', action='store_true', default=False,
+    #                help='send metrics to graphite', dest='graphite')
+    # p.add_argument('-H', '--graphite-host', action='store', type=str,
+    #                dest='graphite_host', default='127.0.0.1',
+    #                help='Graphite host to send to (default: 127.0.0.1)')
+    # p.add_argument('-P', '--graphite-port', action='store', type=int,
+    #                dest='graphite_port', default='2003',
+    #                help='Graphite port to send to (default: 2003)')
+    # p.add_argument('-p', '--graphite-prefix', action='store', type=str,
+    #                dest='graphite_prefix', default='xfinity',
+    #                help='graphite metric prefix (default: xfinity)')
     args = p.parse_args(argv)
     return args
 
@@ -677,35 +683,79 @@ def main():
     if 'XFINITY_PASSWORD' not in os.environ:
         raise SystemExit("ERROR: please export your Xfinity password as the "
                          "XFINITY_PASSWORD environment variable.")
+
+    dailyReport()
+
+    # start scheduler
+    sched.start()
+
+
+# schedule this job to run everyday at 11:59pm
+@sched.scheduled_job('cron', hour=21, minute=7)
+def dailyReport():
     script = XfinityUsage(
         os.environ['XFINITY_USER'],
         os.environ['XFINITY_PASSWORD'],
-        debug=debug,
-        cookie_file=args.cookie_file,
-        browser_name=args.browser_name
+        debug=True if ('DEBUG' in os.environ) and (os.environ['DEBUG'].lower() == 'true') else False,
+        cookie_file='cookies.json',
+        browser_name='firefox-headless'
     )
     res = script.run()
-    if args.json:
-        print(json.dumps(res))
-        raise SystemExit(0)
-    print("Used %d%s of %d%s this month." % (
-        res['used'], res['units'], res['total'], res['units']
-    ))
-    percentageUsed = (res['used']/res['total'])*100
-    print("%.2f%s used so far" % (percentageUsed, "%"))
-    predictedUsage = (res['used']/date.today().day)*30
-    print("%.2f%s predicted usage by end of month." % (predictedUsage, res['units']))
 
-    if args.graphite:
-        # send to graphite
-        sender = GraphiteSender(
-            args.graphite_host, args.graphite_port, prefix=args.graphite_prefix
-        )
-        sender.send_data([{
-            'datetime': datetime.now(),
-            'used_%s' % res['units']: res['used'],
-            'total_%s' % res['units']: res['total']
-        }])
+    # get the gmail
+    email = Gmail('Xfinity Usage Tracker')
+
+    # Extract data from json
+    currentMonth = res["raw"]["usageMonths"][-1]
+    startDate = currentMonth["startDate"]
+    endDate = currentMonth["endDate"]
+    print(f'Current month: {startDate} - {endDate}')
+    emailMsg = [f'# **{startDate} - {endDate}**', '---\n']
+    emailSubject = 'Xfinity Usage Report'
+
+    # extract the interesting stuff from the page
+    totalNumberDays = (datetime.strptime(endDate, '%m/%d/%Y') - datetime.strptime(startDate, '%m/%d/%Y')).days + 1
+    currentUsage = currentMonth["totalUsage"]
+    allowedUsage = currentMonth["allowableUsage"]
+    units = currentMonth['unitOfMeasure']
+
+    # check which policy they are under
+    if currentMonth['policy'] == 'limited' and currentUsage > allowedUsage:
+        overageCost = currentMonth['additionalBlocksUsed'] * currentMonth['additionalCostPerBlock']
+        print(f'**OVERAGE**: You are over by {allowedUsage-currentUsage}{units} ({allowedUsage}{units} allowed)')
+        print(f'**OVERAGE**: Cost so far: ${overageCost}')
+        emailMsg.append(f'**OVERAGE**: You are over by ***{allowedUsage-currentUsage}{units}*** ({allowedUsage}{units} allowed)')
+        emailMsg.append(f'**OVERAGE**: Cost so far: ***${overageCost}***')
+        emailSubject = '*OVERAGE* ' + emailSubject
+    else:
+        emailMsg.append(f'***YOU ARE ON AN UNLIMITED PLAN.***\n')
+        print(f'YOU ARE ON AN UNLIMITED PLAN.\n')
+
+    emailMsg.append(f'You have used **{currentUsage}{units}** of **{allowedUsage}{units}**')
+    print(f'You have used {currentUsage}{units} of {allowedUsage}{units}')
+
+    percentageUsed = (currentUsage/allowedUsage) * 100
+    emailMsg.append(f'**{percentageUsed:.2f}%** used so far in {date.today().day} day{"s" if date.today().day > 1 else ""}')
+    print(f'{percentageUsed:.2f}% used so far in {date.today().day} day{"s" if date.today().day != datetime.strptime("12/21/2020", "%m/%d/%Y").day else ""}')
+
+    predictedUsage = (currentUsage/date.today().day) * totalNumberDays
+    emailMsg.append(f'**{predictedUsage:.2f}{units}** predicted usage by end of month.')
+    print(f'{predictedUsage:.2f}{units} predicted usage by end of month.')
+    if currentMonth['policy'] == 'limited' and predictedUsage > allowedUsage:
+        emailSubject = '*ALERT* ' + emailSubject
+
+    email.sendEmail('dwightmulcahy@gmail.com', emailSubject, '\n\n'.join(emailMsg))
+
+    # if args.graphite:
+    #     # send to graphite
+    #     sender = GraphiteSender(
+    #         args.graphite_host, args.graphite_port, prefix=args.graphite_prefix
+    #     )
+    #     sender.send_data([{
+    #         'datetime': datetime.now(),
+    #         'used_%s' % res['units']: res['used'],
+    #         'total_%s' % res['units']: res['total']
+    #     }])
 
 
 if __name__ == "__main__":
