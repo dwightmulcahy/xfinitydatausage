@@ -479,8 +479,9 @@ class XfinityUsage(object):
             profile.set_preference('useAutomationExtension', False)
             profile.update_preferences()
             cap = DesiredCapabilities().FIREFOX
-            cap["marionette"] = False
-            browser = webdriver.Firefox(capabilities=cap, executable_path="/usr/local/bin/geckodriver", firefox_profile=profile, options=options)
+            # cap["marionette"] = False
+            # browser = webdriver.Firefox(capabilities=cap, executable_path="/usr/local/bin/geckodriver", firefox_profile=profile, options=options)
+            browser = webdriver.Firefox(executable_path="/usr/local/bin/geckodriver", firefox_profile=profile, options=options)
         elif self.browser_name == 'chrome':
             logger.debug("getting Chrome browser (local)")
             browser = webdriver.Chrome()
