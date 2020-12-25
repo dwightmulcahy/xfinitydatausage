@@ -779,9 +779,9 @@ def dailyReport():
     currentMonth = res["raw"]["usageMonths"][-1]
     startDate = currentMonth["startDate"]
     endDate = currentMonth["endDate"]
-    print(f'Current month: {startDate} - {endDate}')
+    print(f'Current month of {today.strftime("%B")}')
     emailSubject = f'Xfinity Data Usage for {today}'
-    emailMsg = [f'## **{startDate} - {endDate}**', '---\n']
+    emailMsg = [f'## **Current month of {today.strftime("%B")}**', '---\n']
 
     # extract the interesting stuff from the page
     totalNumberDays = (datetime.strptime(endDate, '%m/%d/%Y') - datetime.strptime(startDate, '%m/%d/%Y')).days + 1
