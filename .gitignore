@@ -64,6 +64,7 @@ target/
 
 # virtualenv
 venv/
+venv/pyvenv.*
 bin/
 include/
 

@@ -758,9 +758,10 @@ def main():
     sched.start()
 
 
-# schedule this job to run everyday at 11:59pm
-@sched.scheduled_job('cron', hour=21, minute=7)
+# schedule this job to run everyday at 11:55pm
+@sched.scheduled_job('cron', hour=23, minute=55)
 def dailyReport():
+    today = date.today()
     logger.info('gathering data from xfinity')
     script = XfinityUsage(
         os.environ['XFINITY_USER'],
@@ -779,8 +780,8 @@ def dailyReport():
     startDate = currentMonth["startDate"]
     endDate = currentMonth["endDate"]
     print(f'Current month: {startDate} - {endDate}')
-    emailMsg = [f'# **{startDate} - {endDate}**', '---\n']
-    emailSubject = 'Xfinity Usage Report'
+    emailSubject = f'Xfinity Data Usage for {today}'
+    emailMsg = [f'## **{startDate} - {endDate}**', '---\n']
 
     # extract the interesting stuff from the page
     totalNumberDays = (datetime.strptime(endDate, '%m/%d/%Y') - datetime.strptime(startDate, '%m/%d/%Y')).days + 1
@@ -792,26 +793,29 @@ def dailyReport():
     if currentMonth['policy'] != 'limited':
         emailMsg.append(f'***YOU ARE ON AN UNLIMITED PLAN.***\n')
         print(f'YOU ARE ON AN UNLIMITED PLAN.\n')
+    else:
+        emailMsg.append(f'You have used {res["raw"]["courtesyUsed"]} courtesy overages, {res["raw"]["courtesyRemaining"]} remaining!')
+        print(f'You have used {res["raw"]["courtesyUsed"]} courtesy overages, {res["raw"]["courtesyRemaining"]} remaining!')
 
-    if currentMonth['policy'] == 'limited' and currentUsage > allowedUsage:
-        overageCost = currentMonth['additionalBlocksUsed'] * currentMonth['additionalCostPerBlock']
-        print(f'**OVERAGE**: You are over by {allowedUsage-currentUsage}{units} ({allowedUsage}{units} allowed)')
-        print(f'**OVERAGE**: Cost so far: ${overageCost}')
-        emailMsg.append(f'**OVERAGE**: You are over by ***{allowedUsage-currentUsage}{units}*** ({allowedUsage}{units} allowed)')
-        emailMsg.append(f'**OVERAGE**: Cost so far: ***${overageCost}***')
-        emailSubject = '*OVERAGE* ' + emailSubject
+    if res["raw"]['inPaidOverage']:
+            overageCost = currentMonth['additionalBlocksUsed'] * currentMonth['additionalCostPerBlock']
+            print(f'**OVERAGE**: You are over by {allowedUsage-currentUsage}{units} ({allowedUsage}{units} allowed)')
+            print(f'**OVERAGE**: Cost so far: ${overageCost}')
+            emailMsg.append(f'**OVERAGE**: You are over by ***{allowedUsage-currentUsage}{units}*** ({allowedUsage}{units} allowed)')
+            emailMsg.append(f'**OVERAGE**: Cost so far: ***${overageCost}***')
+            emailSubject = '*OVERAGE* ' + emailSubject
 
     emailMsg.append(f'You have used **{currentUsage}{units}** of **{allowedUsage}{units}**')
     print(f'You have used {currentUsage}{units} of {allowedUsage}{units}')
 
     percentageUsed = (currentUsage/allowedUsage) * 100
-    emailMsg.append(f'**{percentageUsed:.2f}%** used so far in {date.today().day} day{"s" if date.today().day > 1 else ""}')
-    print(f'{percentageUsed:.2f}% used so far in {date.today().day} day{"s" if date.today().day != datetime.strptime("12/21/2020", "%m/%d/%Y").day else ""}')
+    emailMsg.append(f'**{percentageUsed:.1f}%** used so far in {today.day} day{"s" if today.day > 1 else ""}')
+    print(f'{percentageUsed:.1f}% used so far in {today.day} day{"s" if today.day != 1 else ""}')
 
-    predictedUsage = (currentUsage/date.today().day) * totalNumberDays
-    emailMsg.append(f'**{predictedUsage:.2f}{units}** predicted usage by end of month.')
-    print(f'{predictedUsage:.2f}{units} predicted usage by end of month.')
-    if currentMonth['policy'] == 'limited' and predictedUsage > allowedUsage:
+    predictedUsage = (currentUsage/today.day) * totalNumberDays
+    emailMsg.append(f'**{predictedUsage:.1f}{units}** predicted usage by end of month.')
+    print(f'{predictedUsage:.1f}{units} predicted usage by end of month.')
+    if not res["raw"]['inPaidOverage'] and currentMonth['policy'] == 'limited' and predictedUsage > allowedUsage:
         emailSubject = '*ALERT* ' + emailSubject
 
     email.sendEmail('dwightmulcahy@gmail.com', emailSubject, '\n\n'.join(emailMsg))
