@@ -789,6 +789,10 @@ def dailyReport():
     units = currentMonth['unitOfMeasure']
 
     # check which policy they are under
+    if currentMonth['policy'] != 'limited':
+        emailMsg.append(f'***YOU ARE ON AN UNLIMITED PLAN.***\n')
+        print(f'YOU ARE ON AN UNLIMITED PLAN.\n')
+
     if currentMonth['policy'] == 'limited' and currentUsage > allowedUsage:
         overageCost = currentMonth['additionalBlocksUsed'] * currentMonth['additionalCostPerBlock']
         print(f'**OVERAGE**: You are over by {allowedUsage-currentUsage}{units} ({allowedUsage}{units} allowed)')
@@ -796,9 +800,6 @@ def dailyReport():
         emailMsg.append(f'**OVERAGE**: You are over by ***{allowedUsage-currentUsage}{units}*** ({allowedUsage}{units} allowed)')
         emailMsg.append(f'**OVERAGE**: Cost so far: ***${overageCost}***')
         emailSubject = '*OVERAGE* ' + emailSubject
-    else:
-        emailMsg.append(f'***YOU ARE ON AN UNLIMITED PLAN.***\n')
-        print(f'YOU ARE ON AN UNLIMITED PLAN.\n')
 
     emailMsg.append(f'You have used **{currentUsage}{units}** of **{allowedUsage}{units}**')
     print(f'You have used {currentUsage}{units} of {allowedUsage}{units}')
