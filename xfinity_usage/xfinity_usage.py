@@ -786,28 +786,20 @@ def dailyReport():
     # get the gmail
     email = Gmail('Xfinity Usage Tracker')
 
-    if res:
+    if 'raw' in res:
         # Extract data from json
         currentMonth = res["raw"]["usageMonths"][-1]
         startDate = currentMonth["startDate"]
         endDate = currentMonth["endDate"]
         print(f'Current month of {today.strftime("%B")}')
         emailSubject = f'Xfinity Data Usage for {today}'
-        emailMsg = [f'## **Current month of {today.strftime("%B")}**', '---\n']
+        emailMsg = [f'## **{today.strftime("%B")}**', '---\n']
 
         # extract the interesting stuff from the page
         totalNumberDays = (datetime.strptime(endDate, '%m/%d/%Y') - datetime.strptime(startDate, '%m/%d/%Y')).days + 1
         currentUsage = currentMonth["totalUsage"]
         allowedUsage = currentMonth["allowableUsage"]
         units = currentMonth['unitOfMeasure']
-
-        # check which policy they are under
-        if currentMonth['policy'] != 'limited':
-            emailMsg.append(f'***YOU ARE ON AN UNLIMITED PLAN.***\n')
-            print(f'YOU ARE ON AN UNLIMITED PLAN.\n')
-        else:
-            emailMsg.append(f'You have used {res["raw"]["courtesyUsed"]} courtesy overages, {res["raw"]["courtesyRemaining"]} remaining!')
-            print(f'You have used {res["raw"]["courtesyUsed"]} courtesy overages, {res["raw"]["courtesyRemaining"]} remaining!')
 
         if res["raw"]['inPaidOverage']:
                 overageCost = currentMonth['additionalBlocksUsed'] * currentMonth['additionalCostPerBlock']
@@ -817,16 +809,29 @@ def dailyReport():
                 emailMsg.append(f'**OVERAGE**: Cost so far: ***${overageCost}***')
                 emailSubject = '*OVERAGE* ' + emailSubject
 
-        emailMsg.append(f'You have used **{currentUsage}{units}** of **{allowedUsage}{units}**')
-        print(f'You have used {currentUsage}{units} of {allowedUsage}{units}')
-
         percentageUsed = (currentUsage/allowedUsage) * 100
-        emailMsg.append(f'**{percentageUsed:.1f}%** used so far in {today.day} day{"s" if today.day > 1 else ""}')
+        emailMsg.append(f'You have used **{currentUsage}{units}** ({percentageUsed:.1f}%)'
+                        f' of **{allowedUsage}{units}** in {today.day} day{"s" if today.day > 1 else ""}')
+
+        print(f'You have used {currentUsage}{units} of {allowedUsage}{units}')
         print(f'{percentageUsed:.1f}% used so far in {today.day} day{"s" if today.day != 1 else ""}')
 
         predictedUsage = (currentUsage/today.day) * totalNumberDays
-        emailMsg.append(f'**{predictedUsage:.1f}{units}** predicted usage by end of month.')
+        emailMsg.append(f'Approximately **{predictedUsage:.1f}{units}** predicted usage by end of month.')
         print(f'{predictedUsage:.1f}{units} predicted usage by end of month.')
+
+        # check which policy they are under
+        if currentMonth['policy'] != 'limited':
+            emailMsg.append(f'***YOU ARE ON AN UNLIMITED PLAN.***\n')
+            print(f'YOU ARE ON AN UNLIMITED PLAN.\n')
+        else:
+            if res["raw"]["courtesyUsed"] > 0:
+                emailMsg.append(f'You have used {res["raw"]["courtesyUsed"]} courtesy overages and have {res["raw"]["courtesyRemaining"]} remaining!')
+                print(f'You have used {res["raw"]["courtesyUsed"]} courtesy overages, {res["raw"]["courtesyRemaining"]} remaining!')
+            else:
+                emailMsg.append(f'You have not used any of your courtesy overages and have {res["raw"]["courtesyRemaining"]} remaining!')
+                print(f'You have not used any of your courtesy overages and have {res["raw"]["courtesyRemaining"]} remaining!')
+
         if not res["raw"]['inPaidOverage'] and currentMonth['policy'] == 'limited' and predictedUsage > allowedUsage:
             emailSubject = '*ALERT* ' + emailSubject
     else:
