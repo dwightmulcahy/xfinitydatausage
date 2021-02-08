@@ -726,8 +726,8 @@ def main():
                          "XFINITY_PASSWORD environment variable.")
 
     if 'EMAIL_TO' not in os.environ:
-        raise SystemExit("ERROR: please export your Xfinity password as the "
-                         "XFINITY_PASSWORD environment variable.")
+        raise SystemExit("ERROR: please export email address to "
+                         "EMAIL_TO environment variable.")
 
     logger.info('sending initial report')
     dailyReport()
