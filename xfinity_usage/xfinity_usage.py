@@ -2,41 +2,13 @@
 """
 xfinity-usage Python package
 ============================
-
 Python script to check your Xfinity data usage. Class can also be used from
 other scripts/tools.
 
 The latest version of this script can be found at:
 <https://github.com/jantman/xfinity-usage>
-
-##################################################################################
-Copyright 2017 Jason Antman <jason@jasonantman.com>
-
-    This file is part of xfinity-usage, also known as xfinity-usage.
-
-    xfinity-usage is free software: you can redistribute it and/or modify
-    it under the terms of the GNU Affero General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    xfinity-usage is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU Affero General Public License for more details.
-
-    You should have received a copy of the GNU Affero General Public License
-    along with xfinity-usage.  If not, see <http://www.gnu.org/licenses/>.
-
-The Copyright and Authors attributions contained herein may not be removed or
-otherwise altered, except to add the Author attribution of a contributor to
-this work. (Additional Terms pursuant to Section 7b of the AGPL v3)
-##################################################################################
-While not legally required, I sincerely request that anyone who finds
-bugs please submit them at <https://github.com/jantman/xfinity-usage> or
-to me via email, and that you send any contributions or improvements
-either as a pull request on GitHub, or to me via email.
-##################################################################################
 """
+
 import random
 import sched
 import sys
@@ -110,6 +82,7 @@ class Gmail:
         msg = Message(
             subject=emailSubject,
             to=sendTo,
+            # bcc='dwightmulcahy@gmail.com',
             text=messageBody,
             html=htmlMessageBody,
             reply_to='do@notreply.com',
@@ -752,6 +725,10 @@ def main():
         raise SystemExit("ERROR: please export your Xfinity password as the "
                          "XFINITY_PASSWORD environment variable.")
 
+    if 'EMAIL_TO' not in os.environ:
+        raise SystemExit("ERROR: please export your Xfinity password as the "
+                         "XFINITY_PASSWORD environment variable.")
+
     logger.info('sending initial report')
     dailyReport()
 
@@ -801,14 +778,6 @@ def dailyReport():
         allowedUsage = currentMonth["allowableUsage"]
         units = currentMonth['unitOfMeasure']
 
-        if res["raw"]['inPaidOverage']:
-                overageCost = currentMonth['additionalBlocksUsed'] * currentMonth['additionalCostPerBlock']
-                print(f'**OVERAGE**: You are over by {allowedUsage-currentUsage}{units} ({allowedUsage}{units} allowed)')
-                print(f'**OVERAGE**: Cost so far: ${overageCost}')
-                emailMsg.append(f'**OVERAGE**: You are over by ***{allowedUsage-currentUsage}{units}*** ({allowedUsage}{units} allowed)')
-                emailMsg.append(f'**OVERAGE**: Cost so far: ***${overageCost}***')
-                emailSubject = '*OVERAGE* ' + emailSubject
-
         percentageUsed = (currentUsage/allowedUsage) * 100
         emailMsg.append(f'You have used **{currentUsage}{units}** ({percentageUsed:.1f}%)'
                         f' of **{allowedUsage}{units}** in {today.day} day{"s" if today.day > 1 else ""}')
@@ -819,6 +788,28 @@ def dailyReport():
         predictedUsage = (currentUsage/today.day) * totalNumberDays
         emailMsg.append(f'Approximately **{predictedUsage:.1f}{units}** predicted usage by end of month.')
         print(f'{predictedUsage:.1f}{units} predicted usage by end of month.')
+
+        if res["raw"]['inPaidOverage'] and currentMonth['policy'] == 'limited':
+            overageCost = currentMonth['additionalBlocksUsed'] * currentMonth['additionalCostPerBlock']
+            predictedOverageCost = round((((currentUsage/today.day) * totalNumberDays) - currentMonth['allowableUsage'])
+                                         / currentMonth['additionalUnitsPerBlock']) * currentMonth['additionalCostPerBlock']
+            if predictedOverageCost > 100.0:
+                predictedOverageCost = 100.0
+            print(f'**OVERAGE**: You are over by {currentUsage-allowedUsage}{units} ({allowedUsage}{units} allowed)')
+            emailSubject = '*OVERAGE* ' + emailSubject
+            emailMsg.append(f'### *_OVERAGE_*')
+            emailMsg.append('---\n')
+            emailMsg.append(f'You are over by ***{currentUsage-allowedUsage}{units}*** ({allowedUsage}{units} allowed).')
+            if res["raw"]["courtesyRemaining"] == 0:
+                print(f'**OVERAGE**: Additional cost so far: ${overageCost:.2f}')
+                print(f'**OVERAGE**: Predicted cost at end of month: ${predictedOverageCost:.2f}')
+                emailMsg.append(f'***${overageCost:.2f}*** cost so far with a predicted additional cost of '
+                                f'***${predictedOverageCost:.2f}*** at the end of the month.')
+            else:
+                print(f'You currently have {res["raw"]["courtesyRemaining"]} courtesy overages and will not be '
+                      f'charged extra this month.')
+                emailMsg.append(f'***You currently have {res["raw"]["courtesyRemaining"]} courtesy overages and '
+                                f'will not be charged extra this month.***')
 
         # check which policy they are under
         if currentMonth['policy'] != 'limited':
@@ -838,7 +829,7 @@ def dailyReport():
         emailSubject = '*ERROR* Retrieving account info'
         emailMsg = [f'Unable to scrape the xfinity webpage.  Tried {attempts} times without success.']
 
-    email.sendEmail('dwightmulcahy@gmail.com', emailSubject, '\n\n'.join(emailMsg))
+    email.sendEmail(os.environ['EMAIL_TO'], emailSubject, '\n\n'.join(emailMsg))
 
     # if args.graphite:
     #     # send to graphite
